@@ -1,5 +1,7 @@
 # Xonta Документы — MCP-инструменты для российских документов
 
+[![smithery badge](https://smithery.ai/badge/mrsergeiluzhnov/xonta-docs)](https://smithery.ai/servers/mrsergeiluzhnov/xonta-docs)
+
 Бесплатный MCP-сервер для ИИ-агентов, которые готовят счета, акты, договоры, доверенности и приказы. Без регистрации и ключей.
 
 **Адрес MCP:** `https://mcp.xonta.ru/mcp` (Streamable HTTP) · **Сайт:** https://mcp.xonta.ru
