@@ -1,0 +1,10 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.mrsergeiluzhnov/xonta-docs",
+  "title": "Xonta Docs RU",
+  "description": "Russian business docs for AI agents: INN/bank checks, amount in words, name declension, workdays",
+  "version": "1.0.0",
+  "websiteUrl": "https://mcp.xonta.ru",
+  "repository": { "url": "https://github.com/mrsergeiluzhnov/xonta-docs", "source": "github" },
+  "remotes": [{ "type": "streamable-http", "url": "https://mcp.xonta.ru/mcp" }]
+}

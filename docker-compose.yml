@@ -1,0 +1,14 @@
+# Сервис слушает только 127.0.0.1:4031 — наружу его отдаёт веб-сервер, который уже стоит на сервере (nginx или Caddy).
+services:
+  docs:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "4031"
+      LOG_FILE: /data/logs/calls.jsonl
+    ports:
+      - "127.0.0.1:4031:4031"
+    volumes:
+      - ./logs:/data/logs
+    mem_limit: 256m

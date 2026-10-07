@@ -1,0 +1,38 @@
+{
+  "name": "xonta-docs",
+  "version": "1.0.0",
+  "description": "MCP tools for AI agents preparing Russian business documents",
+  "scripts": {
+    "test": "node test/tools.js",
+    "e2e": "node test/e2e.js",
+    "start": "node src/server.js"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "russian",
+    "documents",
+    "inn",
+    "склонение",
+    "сумма прописью",
+    "производственный календарь"
+  ],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "az": "^0.2.3",
+    "express": "^5.2.1",
+    "petrovich": "^0.2.1",
+    "zod": "^3.25.76"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mrsergeiluzhnov/xonta-docs"
+  },
+  "homepage": "https://mcp.xonta.ru"
+}
