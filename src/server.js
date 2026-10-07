@@ -13,17 +13,18 @@ import { initFiles, mountFiles } from "./files.js";
 const env = process.env;
 const PORT = Number(env.PORT || 4031);
 const PUBLIC_URL = (env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
-const VERSION = "1.1.0";
+const VERSION = "1.2.0";
 const NAME = "Xonta Документы";
 
 export const DESCRIPTION =
-  "Инструменты для ИИ-агентов, которые готовят российские документы: счёт на оплату и акт в PDF и DOCX, проверка реквизитов (ИНН, КПП, ОГРН, БИК, счёт, СНИЛС), " +
-  "сумма прописью с НДС, склонение ФИО и должностей по падежам, рабочие дни по производственному календарю РФ. " +
+  "Инструменты для ИИ-агентов, которые работают с российскими документами и текстами: счёт и акт в PDF и DOCX, распознавание счетов, актов, УПД и договоров, " +
+  "проверка реквизитов (ИНН, КПП, ОГРН, БИК, счёт, СНИЛС), сумма прописью с НДС, склонение ФИО и должностей, рабочие дни по производственному календарю, " +
+  "подсказки по иностранным словам (закон о русском языке), типограф и транслитерация. " +
   "Бесплатно, без регистрации и ключей. Tools for AI agents preparing Russian business documents.";
 
 const app = express();
 app.set("trust proxy", 1); // ровно один прокси (Caddy) перед сервисом
-app.use(express.json({ limit: "500kb" }));
+app.use(express.json({ limit: "15mb" })); // распознавание документов принимает файлы в base64 до 10 МБ
 app.use((err, _req, res, next) => (err ? res.status(400).json({ error: "Некорректный JSON" }) : next()));
 
 async function runTool(tool, args, req, channel) {

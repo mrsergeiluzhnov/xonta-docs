@@ -61,6 +61,8 @@ server {
 }
 EOF
 sudo ln -sf /etc/nginx/sites-available/mcp.xonta.ru /etc/nginx/sites-enabled/
+# распознавание документов принимает файлы до 10 МБ (в base64 ~14 МБ)
+sudo sed -i 's/server_name mcp.xonta.ru;/server_name mcp.xonta.ru;\n    client_max_body_size 15m;/' /etc/nginx/sites-available/mcp.xonta.ru
 sudo nginx -t && sudo systemctl reload nginx
 sudo certbot --nginx -d mcp.xonta.ru     # сертификат Let's Encrypt; certbot сам допишет HTTPS
 ```

@@ -203,3 +203,89 @@ TOOLS.push(
     handler: makeAct,
   },
 );
+
+// ---------- Русский текст ----------
+import { checkForeignWords, typograph, transliterate } from "./text.js";
+import { parseDocument } from "./parse.js";
+
+TOOLS.push(
+  {
+    name: "check_foreign_words",
+    path: "/v1/text/foreign-words",
+    title: "Иностранные слова в тексте (подсказки к закону о русском языке)",
+    description:
+      "Помогает подготовить текст для потребителей (сайт, карточка товара, рассылка, реклама, вывеска) с учётом требований об использовании русского языка, действующих с 1 марта 2026 года. " +
+      "Находит слова латиницей, жаргонные англицизмы (дедлайн, кэшбэк, сейл) с вариантами русских замен и распространённые заимствования, которые стоит сверить со словарём. " +
+      "Это автоматическая подсказка, а не юридическое заключение: сервис не сверяет текст с нормативными словарями, утверждёнными распоряжением Правительства № 1102-р. " +
+      "Highlights Latin-script words and anglicisms in Russian consumer-facing text, with Russian replacements. Not legal advice.",
+    input: {
+      type: "object",
+      required: ["text"],
+      properties: {
+        text: { type: "string", description: "Текст для проверки, до 50 000 символов" },
+        allow: { type: "string", description: "Товарные знаки и названия, которые не нужно отмечать, через запятую: «Nike, Яндекс Маркет»" },
+      },
+    },
+    example: { text: "Big SALE в нашем барбершопе! Кэшбэк 10% и бесплатная доставка. Дедлайн акции — 31 октября.", allow: "" },
+    handler: checkForeignWords,
+  },
+  {
+    name: "typograph",
+    path: "/v1/text/typograph",
+    title: "Типограф для русского текста",
+    description:
+      "Приводит русский текст к типографским правилам: кавычки «ёлочки» и „лапки“ для вложенных, длинное тире, многоточие, диапазоны чисел через короткое тире, " +
+      "неразрывные пробелы после предлогов и союзов, перед частицами, между числом и единицей измерения или валютой, в сокращениях. Можно получить результат с &nbsp; для HTML. " +
+      "Russian typography: quotes, dashes, non-breaking spaces.",
+    input: {
+      type: "object",
+      required: ["text"],
+      properties: {
+        text: { type: "string", description: "Текст" },
+        format: { type: "string", enum: ["text", "html"], description: "html — дополнительно вернуть вариант с &nbsp;" },
+      },
+    },
+    example: { text: 'Акция "Осень - время скидок" действует 1-15 октября: скидка 20 % на 500 товаров...', format: "text" },
+    handler: typograph,
+  },
+  {
+    name: "transliterate",
+    path: "/v1/text/transliterate",
+    title: "Транслитерация: загранпаспорт, ГОСТ, адрес страницы",
+    description:
+      "Переводит кириллицу в латиницу по выбранной системе: passport — как в загранпаспорте и на банковских картах (приказ МВД № 889, рекомендации ИКАО), " +
+      "gost — ГОСТ 7.79-2000 система Б, slug — для адресов страниц и имён файлов (строчные буквы и дефисы). Cyrillic to Latin transliteration.",
+    input: {
+      type: "object",
+      required: ["text"],
+      properties: {
+        text: { type: "string", description: "Текст на кириллице" },
+        system: { type: "string", enum: ["passport", "gost", "slug"], description: "Система: passport (по умолчанию), gost или slug" },
+      },
+    },
+    example: { text: "Щукина Юлия Сергеевна", system: "passport" },
+    handler: transliterate,
+  },
+  {
+    name: "parse_document",
+    path: "/v1/documents/parse",
+    weight: 3,
+    title: "Распознавание документа: счёт, акт, УПД, счёт-фактура, договор",
+    description:
+      "Извлекает данные из российского документа в PDF или DOCX с текстовым слоем: тип, номер и дату, продавца и покупателя (название, ИНН, КПП, ОГРН, адрес), банковские реквизиты, " +
+      "основание, позиции (наименование, количество, единица, цена, сумма), итог, НДС и сумму прописью. Сразу проверяет ИНН, КПП, БИК и счета по контрольным суммам, " +
+      "сверяет сумму позиций с итогом и расчёт НДС. Разбор по правилам: что не найдено, возвращается пустым, а не выдумывается. Сканы и фото без текстового слоя пока не поддерживаются. " +
+      "Файл не сохраняется. Extracts structured data from Russian invoices, acts, UPD and contracts (PDF/DOCX).",
+    input: {
+      type: "object",
+      properties: {
+        url: { type: "string", description: "Публичная ссылка на PDF или DOCX (до 10 МБ)" },
+        base64: { type: "string", description: "Или содержимое файла в base64" },
+        filename: { type: "string", description: "Имя файла, если передаёте base64, например schet.pdf" },
+        include_text: { type: "boolean", description: "Вернуть также распознанный текст документа" },
+      },
+    },
+    example: { url: "https://example.com/schet-248.pdf" },
+    handler: parseDocument,
+  },
+);

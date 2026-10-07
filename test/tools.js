@@ -151,4 +151,95 @@ await t("счёт и акт: PDF и DOCX создаются, срок оплат
   assert.ok(Buffer.from(many.base64.pdf, "base64").toString("latin1").match(/\/Type \/Page\b/g).length >= 2);
 });
 
+// --- русский текст ---
+const { checkForeignWords, typograph, transliterate } = await import("../src/tools/text.js");
+await t("иностранные слова: латиница, жаргон, распространённые, исключения", async () => {
+  const r = await checkForeignWords({ text: "Big SALE в барбершопе! Кэшбэк и фидбэком делитесь. Новый кейс бренда Nike. Пишите hello@shop.ru, www.shop.ru. Артикул SKU123, USB.", allow: "Nike" });
+  assert.deepEqual(r.latin.map((x) => x.text), ["Big SALE"]);
+  assert.deepEqual(r.likely_not_in_dictionaries.map((x) => x.word).sort(), ["барбершоп", "кэшбэк", "фидбэк"]);
+  assert.deepEqual(r.check_in_dictionary.map((x) => x.word).sort(), ["бренд", "кейс"]);
+  assert.match(r.disclaimer, /не юридическое заключение/);
+  const clean = await checkForeignWords({ text: "Скидки на всю обувь до конца месяца." });
+  assert.equal(clean.summary.latin + clean.summary.likely_not_in_dictionaries, 0);
+  assert.equal(clean.verdict, "Латиницы и англицизмов из нашего списка не найдено.");
+});
+await t("типограф", async () => {
+  const r = await typograph({ text: 'Он сказал: "Это "лучший" выбор" - и ушёл... Цена 1 500 руб. за 2-3 дня. Пришёл ли он?' });
+  assert.equal(r.text, "Он сказал: «Это „лучший“ выбор» — и ушёл… Цена 1 500 руб. за 2–3 дня. Пришёл ли он?");
+  assert.ok((await typograph({ text: "в лесу", format: "html" })).html === "в&nbsp;лесу");
+});
+await t("транслитерация", async () => {
+  assert.equal((await transliterate({ text: "Щукина Юлия Цыганова, ЖЕНЯ" })).result, "Shchukina Iuliia Tsyganova, ZHENIA");
+  assert.equal((await transliterate({ text: "Цветочная улица", system: "gost" })).result, "Cvetochnaya ulica");
+  assert.equal((await transliterate({ text: "Цирк Ёлки", system: "gost" })).result, "Czirk Yolki");
+  assert.equal((await transliterate({ text: "Счёт на оплату № 15!", system: "slug" })).result, "schet-na-oplatu-15");
+});
+
+// --- распознавание документов ---
+const { parseDocument, analyzeLines } = await import("../src/tools/parse.js");
+await t("распознавание: наши счёт и акт в PDF и DOCX (круговая проверка)", async () => {
+  for (const [name, fmt] of [["make_invoice", "pdf"], ["make_invoice", "docx"], ["make_act", "pdf"], ["make_act", "docx"]]) {
+    const ex = structuredClone(TOOLS.find((x) => x.name === name).example);
+    if (name === "make_invoice") ex.vat_rate = "22";
+    const made = await run(name, { ...ex, format: fmt, include_base64: true });
+    const p = await parseDocument({ base64: made.base64[fmt], filename: `x.${fmt}` });
+    assert.equal(p.type, name === "make_act" ? "act" : "invoice", `${name} ${fmt}`);
+    assert.equal(p.number, "15");
+    assert.equal(p.seller.inn, "7707083893");
+    assert.equal(p.buyer.inn, "500100732259");
+    assert.equal(p.buyer.name, "ИП Петров Пётр Петрович");
+    assert.equal(p.items[0].quantity, "1");
+    assert.equal(p.items[0].unit, "усл.");
+    assert.deepEqual(p.issues, [], `${name} ${fmt}: ${p.issues}`);
+    assert.equal(p.confidence, "high");
+    if (name === "make_invoice") { assert.equal(p.totals.total, "165000.00"); assert.equal(p.totals.vat.amount, "29754.10"); assert.equal(p.bank.account, "40702810938000000001"); }
+    else assert.equal(p.basis, "Договор № 12 от 01.10.2026");
+  }
+});
+await t("распознавание: счёт в стиле 1С, УПД, договор", () => {
+  const onec = analyzeLines(`АО "АЛЬФА-БАНК" г. Москва | БИК | 044525593
+Банк получателя | Сч. № | 30101810200000000593
+ИНН 7728168971 | КПП 770801001 | Сч. № | 40702810701300012345
+Счет на оплату № 248 от 15 сентября 2026 г.
+Поставщик (Исполнитель): | ООО "Вектор", ИНН 7728168971, КПП 770801001, 119021, Москва г, Тимура Фрунзе ул, дом № 11
+Покупатель (Заказчик): | ООО "Ромашка", ИНН 7707083893, КПП 773601001
+№ | Товары (работы, услуги) | Кол-во | Ед. | Цена | Сумма
+1 | Бумага офисная А4 | 20 | пач | 450,00 | 9 000,00
+2 | Картридж | 2 | шт | 3 100,00 | 6 200,00
+Итого: | 15 200,00
+В том числе НДС: | 2 740,98
+Всего к оплате: | 15 200,00`.split("\n"));
+  assert.equal(onec.type, "invoice"); assert.equal(onec.date, "2026-09-15"); assert.equal(onec.seller.name, 'ООО "Вектор"');
+  assert.equal(onec.seller.address, "119021, Москва г, Тимура Фрунзе ул, дом № 11");
+  assert.equal(onec.totals.vat.rate, 22); assert.equal(onec.totals.vat.rate_inferred, true);
+  assert.equal(onec.items.length, 2); assert.equal(onec.checks.items_sum, "сумма позиций совпадает с итогом");
+  assert.ok(onec.issues.some((x) => x.startsWith("bank.account")), "выдуманный счёт должен не пройти проверку");
+  const upd = analyzeLines(`Универсальный передаточный документ
+Счет-фактура № 1045 от 30.09.2026 | (1)
+Продавец: ООО "Техносфера" | (2)
+ИНН/КПП продавца: 7736207543/773601001 | (2б)
+Покупатель: ООО "Ромашка" | (6)
+ИНН/КПП покупателя: 7707083893/773601001 | (6б)
+1 | Ноутбук | 796 | шт | 2 | 50 000,00 | 100 000,00 | без акциза | 22% | 22 000,00 | 122 000,00
+Всего к оплате | 100 000,00 | 22 000,00 | 122 000,00`.split("\n"));
+  assert.equal(upd.type, "upd"); assert.equal(upd.number, "1045"); assert.equal(upd.seller.inn, "7736207543"); assert.equal(upd.seller.kpp, "773601001");
+  assert.equal(upd.totals.total, "122000.00"); assert.equal(upd.items[0].quantity, "2"); assert.equal(upd.items[0].sum, "100000.00"); assert.deepEqual(upd.issues, []);
+  const dog = analyzeLines(["ДОГОВОР ОКАЗАНИЯ УСЛУГ № 12", "г. Москва 01 октября 2026 г.", "Заказчик: ООО «Ромашка», ИНН 7707083893, КПП 773601001", "Исполнитель: ИП Петров Пётр Петрович, ИНН 500100732259, ОГРНИП 304500116000157"]);
+  assert.equal(dog.type, "contract"); assert.equal(dog.number, "12"); assert.equal(dog.date, "2026-10-01"); assert.equal(dog.seller.ogrn, "304500116000157");
+});
+await t("распознавание: PDF из другой программы (LibreOffice, склеенные ячейки, перенос названия)", async () => {
+  const { readFileSync } = await import("node:fs");
+  const r = await parseDocument({ base64: readFileSync(new URL("./fixtures/schet-libreoffice.pdf", import.meta.url)).toString("base64"), filename: "s.pdf" });
+  assert.equal(r.number, "77/2026"); assert.equal(r.date, "2026-10-03"); assert.equal(r.seller.inn, "7736207543");
+  assert.equal(r.items.length, 2); assert.equal(r.items[0].name, "Размещение рекламы, октябрь 2026"); assert.equal(r.items[1].quantity, "2.5");
+  assert.equal(r.totals.vat.amount, "12803.28"); assert.deepEqual(r.issues, []);
+});
+await t("распознавание: скан без текста и внутренние ссылки отклоняются", async () => {
+  const PDFDocument = (await import("pdfkit")).default;
+  const blank = await new Promise((res) => { const d = new PDFDocument(); const ch = []; d.on("data", (c) => ch.push(c)); d.on("end", () => res(Buffer.concat(ch))); d.rect(10, 10, 100, 100).fill(); d.end(); });
+  await assert.rejects(parseDocument({ base64: blank.toString("base64"), filename: "scan.pdf" }), /скан/);
+  await assert.rejects(parseDocument({ url: "http://127.0.0.1/x.pdf" }), /внутренние адреса/);
+  await assert.rejects(parseDocument({ base64: Buffer.from("hello").toString("base64"), filename: "a.txt" }), /PDF и DOCX/);
+});
+
 console.log(`\nALL PASSED (${passed})`);

@@ -1,7 +1,7 @@
 {
   "name": "xonta-docs",
-  "version": "1.1.0",
-  "description": "MCP tools for AI agents preparing Russian business documents",
+  "version": "1.2.0",
+  "description": "MCP tools for AI agents working with Russian business documents and texts",
   "scripts": {
     "test": "node test/tools.js",
     "e2e": "node test/e2e.js",
@@ -19,7 +19,12 @@
     "счёт на оплату",
     "акт",
     "pdf",
-    "docx"
+    "docx",
+    "распознавание документов",
+    "упд",
+    "закон о русском языке",
+    "типограф",
+    "транслитерация"
   ],
   "author": "",
   "license": "MIT",
@@ -29,8 +34,12 @@
     "az": "^0.2.3",
     "docx": "^9.9.0",
     "express": "^5.2.1",
+    "ipaddr.js": "^2.5.0",
+    "mammoth": "^1.13.0",
     "pdfkit": "^0.20.2",
     "petrovich": "^0.2.1",
+    "undici": "^8.11.2",
+    "unpdf": "^1.8.1",
     "zod": "^3.25.76"
   },
   "engines": {
