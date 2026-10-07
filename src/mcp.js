@@ -3,19 +3,24 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 
-// JSON Schema (плоская) → zod-форма для registerTool
+// JSON Schema → zod (с вложенными объектами и массивами) для registerTool
+function toZod(p) {
+  let t;
+  if (p.enum) t = z.enum(p.enum);
+  else if (p.type === "integer") t = z.coerce.number().int();
+  else if (p.type === "number") t = z.union([z.number(), z.string()]); // «2,5» тоже допустимо — разберёт обработчик
+  else if (p.type === "boolean") t = z.preprocess((v) => (v === "false" ? false : v === "true" ? true : v), z.boolean());
+  else if (p.type === "object") t = z.object(toZodShape(p)).passthrough();
+  else if (p.type === "array") t = z.array(toZod(p.items || {})).max(200);
+  // числа часто приходят от моделей как number — принимаем и строку, и число
+  else t = z.union([z.string(), z.number()]).transform(String);
+  return p.description ? t.describe(p.description) : t;
+}
 function toZodShape(schema) {
   const shape = {};
   const required = new Set(schema.required || []);
   for (const [k, p] of Object.entries(schema.properties || {})) {
-    let t;
-    if (p.enum) t = z.enum(p.enum);
-    else if (p.type === "integer") t = z.coerce.number().int();
-    else if (p.type === "number") t = z.coerce.number();
-    else if (p.type === "boolean") t = z.preprocess((v) => (v === "false" ? false : v === "true" ? true : v), z.boolean());
-    // числа часто приходят от моделей как number — принимаем и строку, и число
-    else t = z.union([z.string(), z.number()]).transform(String);
-    if (p.description) t = t.describe(p.description);
+    const t = toZod(p);
     shape[k] = required.has(k) ? t : t.optional();
   }
   return shape;

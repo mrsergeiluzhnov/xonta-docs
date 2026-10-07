@@ -83,7 +83,7 @@ export function toMinorUnits(amount) {
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 const fmtNum = (n) => n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
-function moneyWords(minor, cur, kopecksAs) {
+export function moneyWords(minor, cur, kopecksAs) {
   const c = CURRENCIES[cur];
   const neg = minor < 0n;
   const abs = neg ? -minor : minor;

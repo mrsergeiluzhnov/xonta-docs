@@ -96,3 +96,110 @@ export const TOOLS = [
     handler: workingDays,
   },
 ];
+
+// ---------- Документы ----------
+import { makeInvoice, makeAct } from "./documents.js";
+
+const PARTY_PROPS = {
+  name: { type: "string", description: "Наименование: «ООО «Ромашка»» или «ИП Иванов Иван Петрович»" },
+  inn: { type: "string", description: "ИНН" },
+  kpp: { type: "string", description: "КПП (у ИП нет)" },
+  ogrn: { type: "string", description: "ОГРН или ОГРНИП" },
+  address: { type: "string", description: "Юридический адрес" },
+  phone: { type: "string", description: "Телефон" },
+  signer_name: { type: "string", description: "ФИО подписанта полностью, например «Иванов Иван Петрович»" },
+  signer_position: { type: "string", description: "Должность подписанта, например «генеральный директор»" },
+};
+const BANK_PROPS = {
+  bank_name: { type: "string", description: "Банк получателя, например «ПАО Сбербанк, г. Москва»" },
+  bik: { type: "string", description: "БИК банка" },
+  account: { type: "string", description: "Расчётный счёт" },
+  corr_account: { type: "string", description: "Корреспондентский счёт банка" },
+  accountant_name: { type: "string", description: "ФИО главного бухгалтера (если не указано — подписывает руководитель)" },
+};
+const ITEMS = {
+  type: "array",
+  description: "Позиции документа",
+  items: {
+    type: "object",
+    required: ["name", "price"],
+    properties: {
+      name: { type: "string", description: "Наименование товара, работы или услуги" },
+      quantity: { type: "number", description: "Количество, по умолчанию 1" },
+      unit: { type: "string", description: "Единица: шт., усл., час, мес. и т. п." },
+      price: { type: "string", description: "Цена за единицу в рублях, например 15000 или 1500.50" },
+    },
+  },
+};
+const COMMON = {
+  number: { type: "string", description: "Номер документа" },
+  date: { type: "string", description: "Дата ГГГГ-ММ-ДД или ДД.ММ.ГГГГ, по умолчанию сегодня" },
+  items: ITEMS,
+  vat_rate: { type: "string", description: "НДС: «без НДС» (по умолчанию) или ставка в процентах: 22, 20, 10, 7, 5, 0" },
+  vat_included: { type: "boolean", description: "true (по умолчанию) — цены уже с НДС; false — начислить НДС сверху" },
+  basis: { type: "string", description: "Основание, например «Договор № 12 от 01.10.2026»" },
+  comment: { type: "string", description: "Дополнительный текст внизу документа" },
+  format: { type: "string", enum: ["pdf", "docx", "both"], description: "Формат файла: pdf (по умолчанию), docx или both" },
+  include_base64: { type: "boolean", description: "Вернуть файл ещё и в base64 (по умолчанию только ссылка)" },
+};
+const EXAMPLE_SELLER = {
+  name: "ООО «Ромашка»", inn: "7707083893", kpp: "773601001", address: "г. Москва, ул. Примерная, д. 1",
+  bank_name: "ПАО Сбербанк, г. Москва", bik: "044525225", account: "40702810938000000001", corr_account: "30101810400000000225",
+  signer_name: "Иванов Иван Петрович", signer_position: "генеральный директор",
+};
+const EXAMPLE_BUYER = { name: "ИП Петров Пётр Петрович", inn: "500100732259", signer_name: "Петров Пётр Петрович" };
+
+TOOLS.push(
+  {
+    name: "make_invoice",
+    path: "/v1/documents/invoice",
+    weight: 5,
+    title: "Счёт на оплату (PDF, DOCX)",
+    description:
+      "Формирует счёт на оплату по российской форме: банковский блок получателя, поставщик и покупатель, таблица позиций, итог, НДС или «Без налога (НДС)», сумма прописью, подписи. " +
+      "Перед формированием проверяет ИНН, КПП, БИК и счета по контрольным суммам; при ошибке в реквизитах документ не создаётся. Может добавить срок оплаты в рабочих днях по производственному календарю. " +
+      "Возвращает ссылку на PDF и/или DOCX (действует 24 часа). Generates a Russian invoice (schet na oplatu) as PDF/DOCX.",
+    input: {
+      type: "object",
+      required: ["number", "seller", "buyer", "items"],
+      properties: {
+        ...COMMON,
+        seller: { type: "object", description: "Поставщик (получатель денег) с банковскими реквизитами", required: ["name", "bank_name", "bik", "account"], properties: { ...PARTY_PROPS, ...BANK_PROPS } },
+        buyer: { type: "object", description: "Покупатель (плательщик)", required: ["name"], properties: PARTY_PROPS },
+        payment_due_working_days: { type: "integer", description: "Срок оплаты в рабочих днях — в счёт добавится «Оплатить не позднее …»" },
+      },
+    },
+    example: {
+      number: "15", date: "2026-10-07", seller: EXAMPLE_SELLER, buyer: EXAMPLE_BUYER,
+      items: [{ name: "Разработка ИИ-агента для обработки заявок", quantity: 1, unit: "усл.", price: "120000" }, { name: "Сопровождение, месяц", quantity: 3, unit: "мес.", price: "15000" }],
+      vat_rate: "без НДС", payment_due_working_days: 5,
+    },
+    handler: makeInvoice,
+  },
+  {
+    name: "make_act",
+    path: "/v1/documents/act",
+    weight: 5,
+    title: "Акт оказанных услуг (PDF, DOCX)",
+    description:
+      "Формирует акт выполненных работ (оказанных услуг): исполнитель и заказчик, основание, таблица услуг, итог, НДС, сумма прописью, фраза об отсутствии претензий, блок подписей обеих сторон. " +
+      "Проверяет реквизиты сторон по контрольным суммам. Возвращает ссылку на PDF и/или DOCX (действует 24 часа). Generates a Russian services acceptance act (akt) as PDF/DOCX.",
+    input: {
+      type: "object",
+      required: ["number", "seller", "buyer", "items"],
+      properties: {
+        ...COMMON,
+        seller: { type: "object", description: "Исполнитель", required: ["name"], properties: PARTY_PROPS },
+        buyer: { type: "object", description: "Заказчик", required: ["name"], properties: PARTY_PROPS },
+      },
+    },
+    example: {
+      number: "15", date: "2026-10-31", basis: "Договор № 12 от 01.10.2026",
+      seller: { name: EXAMPLE_SELLER.name, inn: EXAMPLE_SELLER.inn, kpp: EXAMPLE_SELLER.kpp, signer_name: EXAMPLE_SELLER.signer_name, signer_position: EXAMPLE_SELLER.signer_position },
+      buyer: EXAMPLE_BUYER,
+      items: [{ name: "Разработка ИИ-агента для обработки заявок", quantity: 1, unit: "усл.", price: "120000" }],
+      vat_rate: "без НДС",
+    },
+    handler: makeAct,
+  },
+);

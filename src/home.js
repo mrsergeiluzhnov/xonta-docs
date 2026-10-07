@@ -18,9 +18,10 @@ export function renderHome({ name, description, publicUrl, tools, limits }) {
   return `<!doctype html>
 <html lang="ru"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(name)} — MCP-инструменты для ИИ-агентов: реквизиты, сумма прописью, склонение ФИО, рабочие дни</title>
+<title>${esc(name)} — MCP-инструменты для ИИ-агентов: счёт и акт в PDF, реквизиты, сумма прописью, склонение ФИО</title>
 <meta name="description" content="${esc(description)}">
 <link rel="canonical" href="${esc(publicUrl)}/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <script type="application/ld+json">${JSON.stringify(ld)}</script>
 <style>
 :root{--bg:#fafaf9;--fg:#1c1917;--muted:#57534e;--card:#fff;--line:#e7e5e4;--accent:#4f46e5;--code:#f5f5f4}
@@ -36,11 +37,11 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}a{color:var(--accen
 </style></head>
 <body><main>
 <h1>${esc(name)}</h1>
-<p class="lead">Бесплатные инструменты для ИИ-агентов, которые готовят счета, акты, договоры и доверенности. Подключаются по протоколу MCP к Claude, Cursor, GigaChat-агентам и любым другим клиентам.</p>
-<div class="badges"><span>бесплатно</span><span>без регистрации и ключей</span><span>MCP + REST</span><span>данные не сохраняются</span></div>
+<p class="lead">Бесплатные инструменты для ИИ-агентов, которые готовят счета, акты, договоры и доверенности. Агент присылает реквизиты и позиции — получает готовый счёт или акт в PDF и Word. Подключаются по протоколу MCP к Claude, Cursor, GigaChat-агентам и любым другим клиентам.</p>
+<div class="badges"><span>бесплатно</span><span>без регистрации и ключей</span><span>MCP + REST</span><span>счета и акты в PDF и DOCX</span></div>
 
 <h2>Инструменты</h2>
-${tools.map((t) => `<div class="tool"><h3>${esc(t.title)}</h3><p>${esc(t.description.split(" Validates")[0].split(" Russian ")[0].split(" Declines")[0])}</p><code>${esc(t.name)} · POST ${esc(t.path)}</code></div>`).join("\n")}
+${tools.map((t) => `<div class="tool"><h3>${esc(t.title)}</h3><p>${esc(t.description.replace(/\s[A-Z][^А-Яа-яЁё]*$/, ""))}</p><code>${esc(t.name)} · POST ${esc(t.path)}</code></div>`).join("\n")}
 
 <h2>Как подключить</h2>
 <p>Адрес MCP-сервера (Streamable HTTP):</p>
@@ -49,7 +50,8 @@ ${tools.map((t) => `<div class="tool"><h3>${esc(t.title)}</h3><p>${esc(t.descrip
 <pre><code>${esc(cfg)}</code></pre>
 <p>Или обычным HTTP-запросом:</p>
 <pre><code>${esc(curl)}</code></pre>
-<p>Описание API: <a href="/openapi.json">openapi.json</a> · для нейросетей: <a href="/llms.txt">llms.txt</a></p>
+<p>Описание API: <a href="/openapi.json">openapi.json</a> · для нейросетей: <a href="/llms.txt">llms.txt</a> · исходный код: <a href="https://github.com/mrsergeiluzhnov/xonta-docs">GitHub</a></p>
+<p>Сервер есть в каталогах: <a href="https://registry.modelcontextprotocol.io/v0/servers?search=xonta-docs">официальный реестр MCP</a>, <a href="https://glama.ai/mcp/connectors/ru.xonta.mcp/xonta-docs">Glama</a>, <a href="https://smithery.ai/servers/mrsergeiluzhnov/xonta-docs">Smithery</a>.</p>
 
 <h2>Лимиты</h2>
 <p>${limits.per_ip_per_day} вызовов в сутки и ${limits.per_ip_per_minute} в минуту с одного адреса. Нужно больше — напишите через <a href="https://xonta.ru">xonta.ru</a>.</p>
@@ -57,7 +59,8 @@ ${tools.map((t) => `<div class="tool"><h3>${esc(t.title)}</h3><p>${esc(t.descrip
 <h2>Частые вопросы</h2>
 <p><b>Проверяет ли сервис, что организация существует?</b> Нет, проверяются формат и контрольные числа реквизитов. Это ловит опечатки, но не заменяет проверку в ЕГРЮЛ.</p>
 <p><b>Откуда календарь?</b> Производственный календарь РФ по постановлениям Правительства (данные xmlcalendar.ru), обновляется автоматически.</p>
-<p><b>Сохраняются ли данные?</b> Нет. Переданные ФИО и реквизиты обрабатываются в памяти и не записываются.</p>
+<p><b>Сохраняются ли данные?</b> Проверка реквизитов, сумма прописью, склонение и календарь работают в памяти и ничего не записывают. Готовые счета и акты хранятся 24 часа, чтобы их можно было скачать по ссылке, и затем удаляются автоматически.</p>
+<p><b>Можно ли ставить на счёт печать и подпись?</b> Сервис формирует документ без подписи. Подпишите его вручную после печати или отправьте через систему ЭДО.</p>
 
 <footer>Сделано командой <a href="https://xonta.ru">Xonta</a> — маркетплейса ИИ-агентов для бизнеса. Новости: <a href="https://t.me/xonta_live">Xonta Live</a>.</footer>
 </main></body></html>`;

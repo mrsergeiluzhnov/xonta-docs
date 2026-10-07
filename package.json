@@ -1,6 +1,6 @@
 {
   "name": "xonta-docs",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP tools for AI agents preparing Russian business documents",
   "scripts": {
     "test": "node test/tools.js",
@@ -15,7 +15,11 @@
     "inn",
     "склонение",
     "сумма прописью",
-    "производственный календарь"
+    "производственный календарь",
+    "счёт на оплату",
+    "акт",
+    "pdf",
+    "docx"
   ],
   "author": "",
   "license": "MIT",
@@ -23,7 +27,9 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
     "az": "^0.2.3",
+    "docx": "^9.9.0",
     "express": "^5.2.1",
+    "pdfkit": "^0.20.2",
     "petrovich": "^0.2.1",
     "zod": "^3.25.76"
   },

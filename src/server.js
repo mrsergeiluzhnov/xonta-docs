@@ -8,27 +8,28 @@ import { mountMcp } from "./mcp.js";
 import { takeSlot, quotaInfo } from "./quota.js";
 import { logCall, ipHash } from "./log.js";
 import { renderHome } from "./home.js";
+import { initFiles, mountFiles } from "./files.js";
 
 const env = process.env;
 const PORT = Number(env.PORT || 4031);
 const PUBLIC_URL = (env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
 const NAME = "Xonta Документы";
 
 export const DESCRIPTION =
-  "Инструменты для ИИ-агентов, которые готовят российские документы: проверка реквизитов (ИНН, КПП, ОГРН, БИК, счёт, СНИЛС), " +
+  "Инструменты для ИИ-агентов, которые готовят российские документы: счёт на оплату и акт в PDF и DOCX, проверка реквизитов (ИНН, КПП, ОГРН, БИК, счёт, СНИЛС), " +
   "сумма прописью с НДС, склонение ФИО и должностей по падежам, рабочие дни по производственному календарю РФ. " +
   "Бесплатно, без регистрации и ключей. Tools for AI agents preparing Russian business documents.";
 
 const app = express();
 app.set("trust proxy", 1); // ровно один прокси (Caddy) перед сервисом
-app.use(express.json({ limit: "200kb" }));
+app.use(express.json({ limit: "500kb" }));
 app.use((err, _req, res, next) => (err ? res.status(400).json({ error: "Некорректный JSON" }) : next()));
 
 async function runTool(tool, args, req, channel) {
   const t0 = Date.now();
   const base = { tool: tool.name, channel, ip: ipHash(req.ip), ua: String(req.get("user-agent") || "").slice(0, 80) };
-  const slot = takeSlot(req.ip);
+  const slot = takeSlot(req.ip, tool.weight || 1);
   if (!slot.ok) {
     logCall({ ...base, ok: false, status: 429 });
     throw Object.assign(new Error(slot.reason), { status: 429 });
@@ -59,6 +60,8 @@ const info = () => ({
 
 app.get("/", (req, res) => (req.accepts(["html", "json"]) === "json" ? res.json(info()) : res.type("html").send(renderHome({ name: NAME, description: DESCRIPTION, publicUrl: PUBLIC_URL, tools: TOOLS, limits: quotaInfo() }))));
 app.get("/info.json", (_req, res) => res.json(info()));
+const FAVICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#4f46e5"/><path d="M19 18h7l6 9 6-9h7L35.5 32 45 46h-7l-6-9-6 9h-7l9.5-14z" fill="#fff"/></svg>`;
+app.get(["/favicon.svg", "/favicon.ico"], (_req, res) => res.type("image/svg+xml").set("Cache-Control", "public, max-age=604800").send(FAVICON));
 app.get("/health", (_req, res) => res.json({ ok: true, version: VERSION }));
 
 app.get("/openapi.json", (_req, res) => {
@@ -96,9 +99,11 @@ for (const t of TOOLS) {
   });
 }
 
+mountFiles(app);
 mountMcp(app, { name: "xonta-docs", version: VERSION, instructions: DESCRIPTION, tools: TOOLS, runTool });
 
 await initMorph();
+await initFiles(PUBLIC_URL);
 refreshCalendars().then((r) => console.log("calendar refresh:", r.map((ok) => (ok ? "ok" : "embedded")).join(",")));
 setInterval(refreshCalendars, 24 * 3600 * 1000).unref();
 

@@ -7,8 +7,10 @@ services:
     environment:
       PORT: "4031"
       LOG_FILE: /data/logs/calls.jsonl
+      FILES_DIR: /data/files
     ports:
       - "127.0.0.1:4031:4031"
     volumes:
       - ./logs:/data/logs
+      - ./files:/data/files
     mem_limit: 256m

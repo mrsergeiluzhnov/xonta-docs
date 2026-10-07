@@ -108,4 +108,47 @@ await t("календарь: сроки и праздники", async () => {
   await assert.rejects(run("working_days", { date: "2026-02-30" }), /такой даты нет/);
 });
 
+// --- документы ---
+const { computeDoc, shortName } = await import("../src/tools/documents.js");
+const inv = TOOLS.find((x) => x.name === "make_invoice").example;
+await t("счёт: суммы, НДС, прописью, количество с дробью", () => {
+  const d = computeDoc({ ...inv, vat_rate: "22", items: [...inv.items, { name: "Консультация", quantity: "2,5", unit: "час", price: "3500.50" }] }, "invoice");
+  assert.equal(d.total.replace(/ /g, " "), "173 751,25");
+  assert.equal(d.vat.amount.replace(/ /g, " "), "31 332,19");
+  assert.equal(d.items[2].sum.replace(/ /g, " "), "8 751,25");
+  assert.equal(d.words, "Сто семьдесят три тысячи семьсот пятьдесят один рубль 25 копеек");
+  assert.equal(d.totalsLine.replace(/ /g, " "), "Всего наименований 3, на сумму 173 751,25 руб.");
+  assert.equal(d.title, "Счёт на оплату № 15 от 7 октября 2026 г.");
+  const top = computeDoc({ ...inv, vat_rate: "20", vat_included: false, items: [{ name: "x", price: "1000" }] }, "invoice");
+  assert.equal(top.total.replace(/ /g, " "), "1 200,00");
+  assert.equal(computeDoc({ ...inv, items: [{ name: "x", price: "1" }] }, "invoice").totalsLine.startsWith("Всего наименований 1,"), true);
+});
+await t("счёт: ошибки реквизитов блокируют документ", () => {
+  assert.throws(() => computeDoc({ ...inv, seller: { ...inv.seller, account: "40702810938000000002" } }, "invoice"), /контрольная сумма|Контрольная сумма/);
+  assert.throws(() => computeDoc({ ...inv, buyer: { name: "X", inn: "500100732258" } }, "invoice"), /buyer\.inn/);
+  assert.throws(() => computeDoc({ ...inv, seller: { name: "ООО X", inn: "7707083893" } }, "invoice"), /банковские реквизиты/);
+  assert.throws(() => computeDoc({ ...inv, items: [] }, "invoice"), /items/);
+  assert.throws(() => computeDoc({ ...inv, items: [{ name: "x", price: "1", quantity: "-1" }] }, "invoice"), /quantity/);
+});
+await t("акт: без банковских реквизитов, ИП, инициалы", async () => {
+  const a = computeDoc(TOOLS.find((x) => x.name === "make_act").example, "act");
+  assert.equal(a.title, "Акт № 15 от 31 октября 2026 г.");
+  assert.equal(a.buyer.isIp, true);
+  assert.equal(a.totalsLine.replace(/ /g, " "), "Всего оказано услуг 1, на сумму 120 000,00 руб.");
+  assert.equal(shortName("Иванов Иван Петрович"), "Иванов И. П.");
+});
+await t("счёт и акт: PDF и DOCX создаются, срок оплаты по календарю", async () => {
+  process.env.FILES_DIR ||= "/tmp/xonta-docs-test-files";
+  const r = await run("make_invoice", { ...inv, format: "both", include_base64: true });
+  assert.equal(r.payment_due, "2026-10-14");
+  assert.equal(r.files.length, 2);
+  assert.ok(Buffer.from(r.base64.pdf, "base64").subarray(0, 5).toString() === "%PDF-");
+  assert.ok(Buffer.from(r.base64.docx, "base64").subarray(0, 2).toString() === "PK");
+  const a = await run("make_act", { ...TOOLS.find((x) => x.name === "make_act").example });
+  assert.equal(a.files[0].format, "pdf");
+  // много позиций — PDF на несколько страниц не падает
+  const many = await run("make_invoice", { ...inv, items: Array.from({ length: 60 }, (_, i) => ({ name: `Позиция ${i + 1}`, price: "100" })), include_base64: true });
+  assert.ok(Buffer.from(many.base64.pdf, "base64").toString("latin1").match(/\/Type \/Page\b/g).length >= 2);
+});
+
 console.log(`\nALL PASSED (${passed})`);

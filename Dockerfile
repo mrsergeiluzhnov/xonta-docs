@@ -5,6 +5,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY src ./src
 COPY data ./data
+COPY assets ./assets
 USER node
 EXPOSE 4031
 CMD ["node", "src/server.js"]

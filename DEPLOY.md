@@ -38,7 +38,7 @@ scp ~/Downloads/xonta-docs-v1.0.1.zip xonta@80.68.156.117:~/
 cd ~ && unzip -o xonta-docs-v1.0.1.zip -d xonta-docs && cd xonta-docs
 cp .env.example .env
 sed -i "s/change-me/$(openssl rand -hex 12)/" .env
-mkdir -p logs && sudo chown 1000:1000 logs
+mkdir -p logs files && sudo chown 1000:1000 logs files
 docker compose up -d --build
 curl -s localhost:4031/health          # {"ok":true,"version":"1.0.0"}
 ```
