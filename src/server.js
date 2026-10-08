@@ -15,7 +15,7 @@ import { readFileSync } from "node:fs";
 const env = process.env;
 const PORT = Number(env.PORT || 4031);
 const PUBLIC_URL = (env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
-const VERSION = "1.4.0";
+const VERSION = "1.4.1";
 const NAME = "Xonta Документы";
 
 export const DESCRIPTION =
@@ -63,7 +63,7 @@ const info = () => ({
 
 // просмотры страниц описания: люди, поисковики и каталоги
 app.use((req, _res, next) => {
-  if (req.method === "GET" && (["/", "/llms.txt", "/openapi.json", "/info.json", "/robots.txt", "/sitemap.xml"].includes(req.path) || req.path.startsWith("/tools/")))
+  if (req.method === "GET" && (["/", "/api", "/llms.txt", "/openapi.json", "/info.json", "/robots.txt", "/sitemap.xml"].includes(req.path) || req.path.startsWith("/tools/")))
     logCall({ event: "page", page: req.path, ip: ipHash(req.ip), ua: String(req.get("user-agent") || "").slice(0, 80) });
   next();
 });
@@ -91,7 +91,7 @@ app.get("/openapi.json", (_req, res) => {
       },
     };
   }
-  res.json({ openapi: "3.1.0", info: { title: NAME, version: VERSION, description: DESCRIPTION }, servers: [{ url: PUBLIC_URL }], paths });
+  res.type("application/json").send(JSON.stringify({ openapi: "3.1.0", info: { title: NAME, version: VERSION, description: DESCRIPTION }, servers: [{ url: PUBLIC_URL }], paths }, null, 2));
 });
 
 app.get("/llms.txt", (_req, res) =>

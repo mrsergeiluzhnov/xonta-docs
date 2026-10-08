@@ -28,13 +28,15 @@ try {
   const robots = await (await fetch(BASE + "/robots.txt")).text();
   check(robots.includes("Disallow: /mcp") && robots.includes("Sitemap: " + BASE + "/sitemap.xml"), "robots.txt");
   const sm = await (await fetch(BASE + "/sitemap.xml")).text();
-  check((sm.match(/<loc>/g) || []).length === 13 && sm.includes("/tools/proverka-kartochki-lekarstv-bad-medizdeliy"), "sitemap.xml: главная, 11 страниц инструментов, llms.txt");
+  check((sm.match(/<loc>/g) || []).length === 14 && sm.includes("/tools/proverka-kartochki-lekarstv-bad-medizdeliy"), "sitemap.xml: главная, 11 страниц инструментов, llms.txt");
   const tp = await fetch(BASE + "/tools/schet-na-oplatu-pdf");
   const tpHtml = await tp.text();
   check(tp.status === 200 && tpHtml.includes('rel="canonical"') && tpHtml.includes("FAQPage") && tpHtml.includes("make_invoice"), "страница инструмента: canonical, разметка FAQ");
   check((await fetch(BASE + "/tools/net-takoy")).status === 404, "несуществующая страница инструмента → 404");
   const og = await fetch(BASE + "/og.png");
   check(og.status === 200 && og.headers.get("content-type") === "image/png", "картинка для соцсетей /og.png");
+  const api = await (await fetch(BASE + "/api")).text();
+  check(api.includes("/v1/documents/invoice") && api.includes("curl -X POST") && !api.includes("<a href=\"/llms.txt\">llms.txt</a></nav>"), "страница /api для людей");
   const oa = await (await fetch(BASE + "/openapi.json")).json();
   check(Object.keys(oa.paths).length === 11, "openapi.json");
 

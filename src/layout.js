@@ -50,7 +50,7 @@ ${jsonLd}`;
 }
 
 export const topNav = () =>
-  `<nav class="top"><b><a href="/">Xonta Документы</a></b><a href="/#tools">Инструменты</a><a href="/openapi.json">API</a><a href="/llms.txt">llms.txt</a><a href="https://xonta.ru">Маркетплейс ИИ-агентов Xonta</a></nav>`;
+  `<nav class="top"><b><a href="/">Xonta Документы</a></b><a href="/#tools">Инструменты</a><a href="/api">API</a><a href="https://xonta.ru">Маркетплейс ИИ-агентов Xonta</a></nav>`;
 
 export const footer = () =>
-  `<footer>Сделано командой <a href="https://xonta.ru">Xonta</a> — маркетплейса ИИ-агентов для бизнеса. Новости: <a href="https://t.me/xonta_live">Xonta Live</a>.</footer>`;
+  `<footer>Сделано командой <a href="https://xonta.ru">Xonta</a> — маркетплейса ИИ-агентов для бизнеса. Новости: <a href="https://t.me/xonta_live">Xonta Live</a>.<br>Для программ и ИИ-агентов: <a href="/openapi.json">openapi.json</a> · <a href="/llms.txt">llms.txt</a> · <a href="/info.json">info.json</a></footer>`;

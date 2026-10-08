@@ -3,7 +3,7 @@
   "name": "io.github.mrsergeiluzhnov/xonta-docs",
   "title": "Xonta Docs RU",
   "description": "Russian docs for AI agents: invoices/acts PDF, document parsing, INN checks, medical ad checks",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "websiteUrl": "https://mcp.xonta.ru",
   "repository": {
     "url": "https://github.com/mrsergeiluzhnov/xonta-docs",

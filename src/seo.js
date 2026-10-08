@@ -243,7 +243,39 @@ ${footer()}
 </main></body></html>`;
 }
 
+// Страница API для людей: что вызывать, как, с примерами. Машинное описание — /openapi.json
+export function renderApiPage({ tools, publicUrl }) {
+  const title = "API и MCP Xonta Документы: адреса, параметры, примеры вызовов";
+  const description = "Как вызвать инструменты Xonta Документы по HTTP (REST, JSON) и по MCP: адреса, примеры запросов, лимиты. Бесплатно, без ключа.";
+  const cfg = JSON.stringify({ mcpServers: { "xonta-docs": { url: `${publicUrl}/mcp` } } }, null, 2);
+  const rows = tools.map((t) => {
+    const curl = `curl -X POST ${publicUrl}${t.path} \\\n  -H "Content-Type: application/json" \\\n  -d '${JSON.stringify(t.example)}'`;
+    const page = slugOf(t) ? ` · <a href="/tools/${slugOf(t)}">подробнее</a>` : "";
+    return `<div class="tool" id="${esc(t.name)}"><h3>${esc(t.title)}</h3><p><code>POST ${esc(t.path)}</code> · MCP: <code>${esc(t.name)}</code>${page}</p><pre><code>${esc(curl)}</code></pre></div>`;
+  }).join("\n");
+  return `<!doctype html>
+<html lang="ru"><head>
+${headTags({ title, description, url: `${publicUrl}/api`, publicUrl })}
+${STYLE}
+</head><body><main>
+${topNav()}
+<p class="crumbs"><a href="/">Xonta Документы</a> › API</p>
+<h1>API и MCP</h1>
+<p class="lead">Все инструменты доступны двумя способами: как MCP-сервер для ИИ-агентов и как обычный HTTP API с JSON. Ключ не нужен.</p>
+<h2>Подключить по MCP</h2>
+<p>Адрес: <code>${esc(publicUrl)}/mcp</code> (Streamable HTTP). Пример настройки клиента:</p>
+<pre><code>${esc(cfg)}</code></pre>
+<h2>Вызвать по HTTP</h2>
+<p>Каждый инструмент — это <code>POST</code>-запрос с JSON. Ответ — JSON; при ошибке во входных данных — код 400 и поле <code>error</code>, при превышении лимита — 429.</p>
+${rows}
+<h2>Описание для программ</h2>
+<ul class="list"><li><a href="/openapi.json">openapi.json</a> — спецификация OpenAPI 3.1, её понимают Postman, Swagger и генераторы клиентов.</li><li><a href="/llms.txt">llms.txt</a> — краткое описание для языковых моделей.</li><li><a href="/info.json">info.json</a> — сведения о сервисе и лимитах.</li></ul>
+${footer()}
+</main></body></html>`;
+}
+
 export function mountSeo(app, { tools, publicUrl }) {
+  app.get("/api", (_req, res) => res.type("html").set("Cache-Control", "public, max-age=3600").send(renderApiPage({ tools, publicUrl })));
   const byslug = new Map(tools.filter(slugOf).map((t) => [slugOf(t), t]));
   app.get("/tools/:slug", (req, res) => {
     const t = byslug.get(req.params.slug);
@@ -255,7 +287,7 @@ export function mountSeo(app, { tools, publicUrl }) {
   );
   const lastmod = new Date().toISOString().slice(0, 10);
   app.get("/sitemap.xml", (_req, res) => {
-    const urls = [`${publicUrl}/`, ...[...byslug.keys()].map((s) => `${publicUrl}/tools/${s}`), `${publicUrl}/llms.txt`];
+    const urls = [`${publicUrl}/`, `${publicUrl}/api`, ...[...byslug.keys()].map((s) => `${publicUrl}/tools/${s}`), `${publicUrl}/llms.txt`];
     res.type("application/xml").send(
       `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
         urls.map((u, i) => `<url><loc>${u}</loc><lastmod>${lastmod}</lastmod><priority>${i === 0 ? "1.0" : "0.8"}</priority></url>`).join("\n") +
