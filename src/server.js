@@ -9,17 +9,19 @@ import { takeSlot, quotaInfo } from "./quota.js";
 import { logCall, ipHash } from "./log.js";
 import { renderHome } from "./home.js";
 import { initFiles, mountFiles } from "./files.js";
+import { mountSeo } from "./seo.js";
+import { readFileSync } from "node:fs";
 
 const env = process.env;
 const PORT = Number(env.PORT || 4031);
 const PUBLIC_URL = (env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
-const VERSION = "1.2.0";
+const VERSION = "1.4.0";
 const NAME = "Xonta Документы";
 
 export const DESCRIPTION =
   "Инструменты для ИИ-агентов, которые работают с российскими документами и текстами: счёт и акт в PDF и DOCX, распознавание счетов, актов, УПД и договоров, " +
   "проверка реквизитов (ИНН, КПП, ОГРН, БИК, счёт, СНИЛС), сумма прописью с НДС, склонение ФИО и должностей, рабочие дни по производственному календарю, " +
-  "подсказки по иностранным словам (закон о русском языке), типограф и транслитерация. " +
+  "подсказки по иностранным словам (закон о русском языке), проверка карточек и рекламы лекарств, медизделий и БАД, типограф и транслитерация. " +
   "Бесплатно, без регистрации и ключей. Tools for AI agents preparing Russian business documents.";
 
 const app = express();
@@ -59,10 +61,21 @@ const info = () => ({
   author: { name: "Xonta — маркетплейс ИИ-агентов", url: "https://xonta.ru" },
 });
 
+// просмотры страниц описания: люди, поисковики и каталоги
+app.use((req, _res, next) => {
+  if (req.method === "GET" && (["/", "/llms.txt", "/openapi.json", "/info.json", "/robots.txt", "/sitemap.xml"].includes(req.path) || req.path.startsWith("/tools/")))
+    logCall({ event: "page", page: req.path, ip: ipHash(req.ip), ua: String(req.get("user-agent") || "").slice(0, 80) });
+  next();
+});
 app.get("/", (req, res) => (req.accepts(["html", "json"]) === "json" ? res.json(info()) : res.type("html").send(renderHome({ name: NAME, description: DESCRIPTION, publicUrl: PUBLIC_URL, tools: TOOLS, limits: quotaInfo() }))));
 app.get("/info.json", (_req, res) => res.json(info()));
 const FAVICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#4f46e5"/><path d="M19 18h7l6 9 6-9h7L35.5 32 45 46h-7l-6-9-6 9h-7l9.5-14z" fill="#fff"/></svg>`;
 app.get(["/favicon.svg", "/favicon.ico"], (_req, res) => res.type("image/svg+xml").set("Cache-Control", "public, max-age=604800").send(FAVICON));
+mountSeo(app, { tools: TOOLS, publicUrl: PUBLIC_URL });
+const OG = readFileSync(new URL("../assets/og.png", import.meta.url));
+app.get("/og.png", (_req, res) => res.type("image/png").set("Cache-Control", "public, max-age=604800").send(OG));
+// подтверждение управления доменом для паспорта агента (orchestrator Xonta): значение задаётся XONTA_CHALLENGE в .env
+app.get("/.well-known/xonta-challenge.txt", (_req, res) => (env.XONTA_CHALLENGE ? res.type("text/plain").send(env.XONTA_CHALLENGE) : res.status(404).type("text/plain").send("Not found")));
 app.get("/health", (_req, res) => res.json({ ok: true, version: VERSION }));
 
 app.get("/openapi.json", (_req, res) => {

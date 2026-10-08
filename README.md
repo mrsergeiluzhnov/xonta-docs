@@ -1,6 +1,6 @@
 # Xonta Документы — MCP-инструменты для российских документов
 
-[![smithery badge](https://smithery.ai/badge/mrsergeiluzhnov/xonta-docs)](https://smithery.ai/servers/mrsergeiluzhnov/xonta-docs)
+[![smithery badge](https://smithery.ai/badge/mrsergeiluzhnov/xonta-docs)](https://smithery.ai/servers/mrsergeiluzhnov/xonta-docs) [![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/mrsergeiluzhnov/xonta-docs)
 
 Бесплатный MCP-сервер для ИИ-агентов, которые работают с российскими документами и текстами: готовят и распознают счета, акты и УПД, проверяют реквизиты, приводят тексты в порядок. Агент передаёт реквизиты и позиции — получает готовый счёт или акт в PDF и Word. Без регистрации и ключей.
 
@@ -15,6 +15,7 @@
 | `amount_in_words` | Сумма прописью: «Одна тысяча двести тридцать четыре рубля 56 копеек». НДС в том числе или сверху, готовая строка для счёта. RUB, USD, EUR, CNY |
 | `decline_name` | ФИО и должность в нужном падеже: «в лице генерального директора Иванова Ивана Петровича». Пол определяется автоматически, есть инициалы и режим «все падежи» |
 | `check_foreign_words` | Подсказки к закону о русском языке: латиница, жаргонные англицизмы с русскими заменами, заимствования для сверки со словарём. Не юридическое заключение и не сверка с нормативными словарями |
+| `check_medical_text` | Карточки и реклама лекарств, медизделий, БАД и медуслуг: обязательные предупреждения, формат номера регистрации (РЗН, ЛП, СГР), рискованные формулировки по ст. 24 и 25 закона «О рекламе», поля карточки по постановлению № 821. Не сверяет номера с реестрами и не заменяет юриста |
 | `typograph` | Типограф: «ёлочки», тире, неразрывные пробелы, многоточие, диапазоны |
 | `transliterate` | Транслитерация: как в загранпаспорте (приказ МВД № 889), ГОСТ 7.79-2000 Б, для адресов страниц |
 | `working_days` | Производственный календарь РФ: дата через N рабочих дней, число рабочих дней и часов в периоде, праздник ли день |
@@ -38,7 +39,7 @@ curl -X POST https://mcp.xonta.ru/v1/text/decline \
 
 Описание API: `/openapi.json`, для нейросетей: `/llms.txt`.
 
-Каталоги: [официальный реестр MCP](https://registry.modelcontextprotocol.io/v0/servers?search=xonta-docs) (`io.github.mrsergeiluzhnov/xonta-docs`) · [Glama](https://glama.ai/mcp/connectors/ru.xonta.mcp/xonta-docs) · [Smithery](https://smithery.ai/servers/mrsergeiluzhnov/xonta-docs)
+Каталоги: [официальный реестр MCP](https://registry.modelcontextprotocol.io/v0/servers?search=xonta-docs) (`io.github.mrsergeiluzhnov/xonta-docs`) · [Glama](https://glama.ai/mcp/connectors/ru.xonta.mcp/xonta-docs) · [Smithery](https://smithery.ai/servers/mrsergeiluzhnov/xonta-docs) · [mcpservers.org](https://mcpservers.org/servers/mrsergeiluzhnov/xonta-docs)
 
 Лимиты: 300 единиц в сутки и 60 вызовов в минуту с одного адреса (счёт или акт — 5 единиц, распознавание документа — 3, остальные инструменты — 1). Готовые документы доступны по ссылке 24 часа и затем удаляются; присланные на распознавание файлы и тексты не сохраняются. В журнал пишутся только название инструмента, время и хэш адреса.
 

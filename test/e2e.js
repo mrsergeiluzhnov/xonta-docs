@@ -18,11 +18,25 @@ const post = (p, b) => fetch(BASE + p, { method: "POST", headers: { "content-typ
 try {
   const home = await fetch(BASE + "/");
   check(home.status === 200 && (await home.text()).includes("Склонение ФИО"), "главная страница HTML");
+  const br = await fetch(BASE + "/mcp", { headers: { accept: "text/html,application/xhtml+xml" }, redirect: "manual" });
+  check(br.status === 302 && br.headers.get("location").startsWith("/"), "браузер на /mcp → переход на главную");
+  const sse = await fetch(BASE + "/mcp", { headers: { accept: "text/event-stream" } });
+  check(sse.status === 405, "MCP-клиент GET /mcp → 405 по стандарту");
   const info = await (await fetch(BASE + "/", { headers: { accept: "application/json" } })).json();
-  check(info.tools.length === 10 && info.mcp.url.endsWith("/mcp"), "JSON-описание сервиса");
+  check(info.tools.length === 11 && info.mcp.url.endsWith("/mcp"), "JSON-описание сервиса");
   check((await (await fetch(BASE + "/llms.txt")).text()).includes("Склонение ФИО"), "llms.txt");
+  const robots = await (await fetch(BASE + "/robots.txt")).text();
+  check(robots.includes("Disallow: /mcp") && robots.includes("Sitemap: " + BASE + "/sitemap.xml"), "robots.txt");
+  const sm = await (await fetch(BASE + "/sitemap.xml")).text();
+  check((sm.match(/<loc>/g) || []).length === 13 && sm.includes("/tools/proverka-kartochki-lekarstv-bad-medizdeliy"), "sitemap.xml: главная, 11 страниц инструментов, llms.txt");
+  const tp = await fetch(BASE + "/tools/schet-na-oplatu-pdf");
+  const tpHtml = await tp.text();
+  check(tp.status === 200 && tpHtml.includes('rel="canonical"') && tpHtml.includes("FAQPage") && tpHtml.includes("make_invoice"), "страница инструмента: canonical, разметка FAQ");
+  check((await fetch(BASE + "/tools/net-takoy")).status === 404, "несуществующая страница инструмента → 404");
+  const og = await fetch(BASE + "/og.png");
+  check(og.status === 200 && og.headers.get("content-type") === "image/png", "картинка для соцсетей /og.png");
   const oa = await (await fetch(BASE + "/openapi.json")).json();
-  check(Object.keys(oa.paths).length === 10, "openapi.json");
+  check(Object.keys(oa.paths).length === 11, "openapi.json");
 
   const r1 = await (await post("/v1/text/amount-in-words", { amount: "1234.56", vat_rate: 22 })).json();
   check(r1.vat?.line?.includes("НДС (22%)"), "REST сумма прописью");
@@ -32,7 +46,7 @@ try {
   const client = new Client({ name: "e2e", version: "1" });
   await client.connect(new StreamableHTTPClientTransport(new URL(BASE + "/mcp")));
   const { tools } = await client.listTools();
-  check(tools.length === 10, `MCP: ${tools.length} инструментов в списке`);
+  check(tools.length === 11, `MCP: ${tools.length} инструментов в списке`);
   const invTool = tools.find((t) => t.name === "make_invoice");
   check(invTool.inputSchema.properties.seller.type === "object" && invTool.inputSchema.properties.items.type === "array", "MCP: вложенная схема счёта (seller — объект, items — массив)");
   const ex = info.tools.find((t) => t.name === "make_invoice").example;
@@ -67,6 +81,7 @@ try {
 
   await new Promise((r) => setTimeout(r, 300));
   const lines = readFileSync(LOG, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  check(lines.some((l) => l.event === "page" && l.page === "/tools/schet-na-oplatu-pdf"), "журнал: просмотр страницы инструмента записан");
   check(lines.length >= 12 && lines.some((l) => l.channel === "mcp" && l.ok) && lines.every((l) => /^[0-9a-f]{12}$/.test(l.ip)), `журнал: ${lines.length} строк, IP захэширован`);
 } catch (err) {
   ok = false;

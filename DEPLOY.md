@@ -106,3 +106,8 @@ docker compose exec docs node src/stats.js 60                       # за 60 д
 ```bash
 cd ~ && unzip -o xonta-docs-vX.zip -d xonta-docs && cd xonta-docs && docker compose up -d --build
 ```
+
+## Поисковики
+- В `.env` добавьте `YANDEX_VERIFICATION=` и `GOOGLE_VERIFICATION=` (содержимое meta-тегов из Вебмастера и Search Console) и `INDEXNOW_KEY=` (любая строка из 16–32 латинских букв и цифр).
+- После `docker compose up -d --build` проверьте `/robots.txt`, `/sitemap.xml`, `/tools/schet-na-oplatu-pdf`.
+- Отправка в IndexNow: `docker compose exec docs node scripts/indexnow.js`.

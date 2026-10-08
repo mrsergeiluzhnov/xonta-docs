@@ -2,6 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
+import { logCall, ipHash } from "./log.js";
 
 // JSON Schema → zod (с вложенными объектами и массивами) для registerTool
 function toZod(p) {
@@ -52,6 +53,20 @@ export function mountMcp(app, { name, version, instructions, tools, runTool }) {
   }
 
   app.post("/mcp", async (req, res) => {
+    // журнал «нас нашли»: подключение клиента и запрос списка инструментов (вызовы инструментов пишутся отдельно)
+    const msgs = Array.isArray(req.body) ? req.body : [req.body];
+    for (const m of msgs) {
+      if (m?.method === "initialize" || m?.method === "tools/list") {
+        const ci = m.params?.clientInfo || {};
+        logCall({
+          event: m.method === "initialize" ? "connect" : "list",
+          client: m.method === "initialize" ? `${String(ci.name || "unknown").slice(0, 60)}${ci.version ? " " + String(ci.version).slice(0, 20) : ""}` : undefined,
+          protocol: m.params?.protocolVersion,
+          ip: ipHash(req.ip),
+          ua: String(req.get("user-agent") || "").slice(0, 80),
+        });
+      }
+    }
     const server = buildServer(req);
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
     res.on("close", () => { transport.close(); server.close(); });
@@ -64,6 +79,7 @@ export function mountMcp(app, { name, version, instructions, tools, runTool }) {
     }
   });
   const notAllowed = (_req, res) => res.status(405).set("Allow", "POST").json({ jsonrpc: "2.0", error: { code: -32000, message: "Method not allowed" }, id: null });
-  app.get("/mcp", notAllowed);
+  // человек открыл адрес в браузере — показываем главную страницу; MCP-клиенты (text/event-stream) получают 405 по стандарту
+  app.get("/mcp", (req, res) => (req.accepts(["text/event-stream", "html"]) === "html" && !String(req.get("accept") || "").includes("text/event-stream") ? res.redirect(302, "/?from=mcp") : notAllowed(req, res)));
   app.delete("/mcp", notAllowed);
 }

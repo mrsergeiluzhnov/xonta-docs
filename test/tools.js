@@ -242,4 +242,35 @@ await t("распознавание: скан без текста и внутр�
   await assert.rejects(parseDocument({ base64: Buffer.from("hello").toString("base64"), filename: "a.txt" }), /PDF и DOCX/);
 });
 
+// --- медицинские карточки и реклама ---
+const { checkMedicalText } = await import("../src/tools/medical.js");
+await t("медтексты: БАД с нарушениями и корректная карточка", async () => {
+  const badText = await checkMedicalText({ text: "БАД «Хондро-Плюс» лечит суставы и избавляет от артрита! 100% результат, абсолютно безопасно. Мне помог за неделю! Огромное спасибо производителю. СГР RU.77.99.32.003.R.001234.10.24" });
+  assert.equal(badText.kind, "supplement");
+  assert.ok(badText.recommendations.some((x) => x.includes("Не является лекарственным средством")), "в карточке — рекомендация");
+  const badAd = await checkMedicalText({ text: "БАД для суставов. СГР RU.77.99.32.003.R.001234.10.24", channel: "ad" });
+  assert.ok(badAd.problems.some((x) => x.includes("Не является лекарственным средством")), "в рекламе — замечание");
+  const phrases = badText.risky_phrases.map((x) => x.phrase.toLowerCase());
+  for (const p of ["лечит", "от артрита", "100% результат", "мне помог"]) assert.ok(phrases.some((x) => x.includes(p)), p);
+  const ok = await checkMedicalText({ text: "Биологически активная добавка «Витамин D3». Источник витамина D. Не является лекарственным средством. СГР RU.77.99.32.003.R.001234.10.24" });
+  assert.equal(ok.status, "замечаний не найдено");
+  assert.match(ok.disclaimer, /не юридическое заключение/);
+});
+await t("медтексты: медизделие, лекарство, медуслуга, формат номеров", async () => {
+  const dev = await checkMedicalText({ text: "Тонометр автоматический. Регистрационное удостоверение РЗН 2019/8521 от 12.03.2019, бессрочно. Имеются противопоказания, ознакомьтесь с инструкцией по применению." });
+  assert.equal(dev.kind, "device"); assert.equal(dev.status, "замечаний не найдено");
+  const devNoDate = await checkMedicalText({ text: "Тонометр. РЗН 2019/8521. Перед применением проконсультируйтесь со специалистом." });
+  assert.equal(devNoDate.recommendations.length, 2);
+  const drug = await checkMedicalText({ text: "Препарат Х — рецептурный, отпускается по рецепту. Клинически доказана эффективность. ЛП-№(001234)-(РГ-RU)", channel: "ad" });
+  assert.equal(drug.kind, "drug"); assert.ok(drug.problems.some((x) => x.includes("ч. 8"))); assert.ok(drug.risky_phrases.some((x) => x.basis.includes("п. 4")));
+  const svc = await checkMedicalText({ text: "Стоматология — лучшие врачи города! Гарантируем результат. Приём врача от 1000 ₽.", channel: "ad" });
+  assert.equal(svc.kind, "service"); assert.equal(svc.risky_phrases.length, 2); assert.equal(svc.problems.length, 1);
+  const wrong = await checkMedicalText({ text: "БАД, свидетельство RU.77.99.32.003.R.001234.13.24. Не является лекарственным средством" });
+  assert.ok(wrong.problems.some((x) => x.includes("месяц выдачи")));
+  const unknown = await checkMedicalText({ text: "Отличная футболка из хлопка." });
+  assert.equal(unknown.kind, null);
+  const forced = await checkMedicalText({ text: "Отличная футболка из хлопка.", kind: "supplement" });
+  assert.equal(forced.kind_source, "указан в запросе");
+});
+
 console.log(`\nALL PASSED (${passed})`);

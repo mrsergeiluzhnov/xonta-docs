@@ -1,6 +1,6 @@
 {
   "name": "xonta-docs",
-  "version": "1.2.0",
+  "version": "1.4.0",
   "description": "MCP tools for AI agents working with Russian business documents and texts",
   "scripts": {
     "test": "node test/tools.js",
@@ -24,7 +24,11 @@
     "упд",
     "закон о русском языке",
     "типограф",
-    "транслитерация"
+    "транслитерация",
+    "реклама лекарств",
+    "бад",
+    "медизделия",
+    "маркетплейс"
   ],
   "author": "",
   "license": "MIT",
