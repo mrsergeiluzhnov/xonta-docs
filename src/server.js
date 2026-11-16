@@ -10,12 +10,14 @@ import { logCall, ipHash } from "./log.js";
 import { renderHome } from "./home.js";
 import { initFiles, mountFiles } from "./files.js";
 import { mountSeo } from "./seo.js";
+import { BRAND_ICONS } from "./layout.js";
+import { OTHER_SERVERS } from "./others.js";
 import { readFileSync } from "node:fs";
 
 const env = process.env;
 const PORT = Number(env.PORT || 4031);
 const PUBLIC_URL = (env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
-const VERSION = "1.4.1";
+const VERSION = "1.4.3";
 const NAME = "Xonta Документы";
 
 export const DESCRIPTION =
@@ -70,7 +72,11 @@ app.use((req, _res, next) => {
 app.get("/", (req, res) => (req.accepts(["html", "json"]) === "json" ? res.json(info()) : res.type("html").send(renderHome({ name: NAME, description: DESCRIPTION, publicUrl: PUBLIC_URL, tools: TOOLS, limits: quotaInfo() }))));
 app.get("/info.json", (_req, res) => res.json(info()));
 const FAVICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#4f46e5"/><path d="M19 18h7l6 9 6-9h7L35.5 32 45 46h-7l-6-9-6 9h-7l9.5-14z" fill="#fff"/></svg>`;
-app.get(["/favicon.svg", "/favicon.ico"], (_req, res) => res.type("image/svg+xml").set("Cache-Control", "public, max-age=604800").send(FAVICON));
+// иконки бренда Xonta, если скачаны в assets/brand; иначе — запасная SVG
+const brandFile = (f) => new URL(`../assets/brand/${f}`, import.meta.url).pathname;
+app.get("/brand/:file", (req, res) => (BRAND_ICONS.includes(req.params.file) && req.params.file.endsWith(".png") ? res.set("Cache-Control", "public, max-age=604800").type("image/png").sendFile(brandFile(req.params.file)) : res.status(404).end()));
+app.get("/favicon.ico", (_req, res) => (BRAND_ICONS.includes("favicon.ico") ? res.set("Cache-Control", "public, max-age=604800").type("image/x-icon").sendFile(brandFile("favicon.ico")) : res.type("image/svg+xml").send(FAVICON)));
+app.get("/favicon.svg", (_req, res) => res.type("image/svg+xml").set("Cache-Control", "public, max-age=604800").send(FAVICON));
 mountSeo(app, { tools: TOOLS, publicUrl: PUBLIC_URL });
 const OG = readFileSync(new URL("../assets/og.png", import.meta.url));
 app.get("/og.png", (_req, res) => res.type("image/png").set("Cache-Control", "public, max-age=604800").send(OG));
@@ -98,6 +104,7 @@ app.get("/llms.txt", (_req, res) =>
   res.type("text/plain; charset=utf-8").send(
     `# ${NAME}\n\n> ${DESCRIPTION}\n\nMCP: ${PUBLIC_URL}/mcp (streamable HTTP, без ключа)\n\n## Инструменты (POST, JSON)\n` +
       TOOLS.map((t) => `- [${t.title}](${PUBLIC_URL}${t.path}): ${t.description} Пример: ${JSON.stringify(t.example)}`).join("\n") +
+      `\n\n## Другие серверы Xonta\n` + OTHER_SERVERS.map((x) => `- ${x.name}: MCP ${x.mcp} — ${x.text} Код: ${x.repo}`).join("\n") +
       `\n\n## Лимиты\n${quotaInfo().per_ip_per_day} вызовов в сутки и ${quotaInfo().per_ip_per_minute} в минуту с одного адреса.\n\n## Автор\nXonta — маркетплейс ИИ-агентов: https://xonta.ru\n`,
   ),
 );

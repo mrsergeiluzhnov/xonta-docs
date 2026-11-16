@@ -1,4 +1,19 @@
 // Общая разметка страниц: head с SEO-тегами, стили, верхнее меню и подвал.
+import { existsSync } from "node:fs";
+
+// Иконки бренда Xonta (assets/brand, скачиваются с xonta.ru скриптом scripts/fetch-brand-icons.py); если их нет — запасная SVG
+export const BRAND_ICONS = ["favicon.ico", "icon-16.png", "icon-32.png", "icon-180.png", "icon-192.png"].filter((f) => existsSync(new URL(`../assets/brand/${f}`, import.meta.url)));
+function iconTags() {
+  if (!BRAND_ICONS.length) return `<link rel="icon" href="/favicon.svg" type="image/svg+xml">`;
+  const has = (f) => BRAND_ICONS.includes(f);
+  return [
+    has("favicon.ico") && `<link rel="icon" href="/favicon.ico" sizes="any">`,
+    has("icon-32.png") && `<link rel="icon" type="image/png" sizes="32x32" href="/brand/icon-32.png">`,
+    has("icon-16.png") && `<link rel="icon" type="image/png" sizes="16x16" href="/brand/icon-16.png">`,
+    has("icon-192.png") && `<link rel="icon" type="image/png" sizes="192x192" href="/brand/icon-192.png">`,
+    has("icon-180.png") && `<link rel="apple-touch-icon" sizes="180x180" href="/brand/icon-180.png">`,
+  ].filter(Boolean).join("\n");
+}
 export const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
 export const STYLE = `<style>
@@ -34,7 +49,7 @@ export function headTags({ title, description, url, publicUrl, ld = [] }) {
 <meta name="description" content="${esc(description)}">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <link rel="canonical" href="${esc(url)}">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+${iconTags()}
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Xonta Документы">
 <meta property="og:locale" content="ru_RU">
