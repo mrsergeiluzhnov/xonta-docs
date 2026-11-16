@@ -1,5 +1,6 @@
 // Главная страница сервиса для людей и поисковиков (Яндекс, Алиса): что умеет и как подключить.
 import { esc, STYLE, headTags, topNav, footer } from "./layout.js";
+import { OTHER_SERVERS } from "./others.js";
 import { PAGES, slugOf } from "./seo.js";
 
 export function renderHome({ name, description, publicUrl, tools, limits }) {
@@ -44,6 +45,10 @@ ${tools.map((t) => `<div class="tool"><h3>${slugOf(t) ? `<a href="/tools/${slugO
 <pre><code>${esc(curl)}</code></pre>
 <p>Описание API: <a href="/openapi.json">openapi.json</a> · для нейросетей: <a href="/llms.txt">llms.txt</a> · исходный код: <a href="https://github.com/mrsergeiluzhnov/xonta-docs">GitHub</a></p>
 <p>Сервер есть в каталогах: <a href="https://registry.modelcontextprotocol.io/v0/servers?search=xonta-docs">официальный реестр MCP</a>, <a href="https://glama.ai/mcp/connectors/ru.xonta.mcp/xonta-docs">Glama</a>, <a href="https://smithery.ai/servers/mrsergeiluzhnov/xonta-docs">Smithery</a>, <a href="https://mcpservers.org/servers/mrsergeiluzhnov/xonta-docs">mcpservers.org</a>.</p>
+
+<h2 id="more">Другие серверы Xonta</h2>
+<p>Тоже бесплатные и без ключей, подключаются так же — по адресу MCP.</p>
+${OTHER_SERVERS.map((x) => `<div class="tool"><h3><a href="${esc(x.repo)}">${esc(x.name)}</a></h3><p>${esc(x.text)}</p><code>${esc(x.mcp)}</code><p style="font-size:14px;margin:8px 0 0"><a href="https://xonta.dev/passport/?id=${esc(x.passport)}&amp;lang=ru">Паспорт сервера</a>: подписанное подтверждение домена и списка инструментов, проверяется прямо в браузере.</p></div>`).join("\n")}
 
 <h2>Лимиты</h2>
 <p>${limits.per_ip_per_day} вызовов в сутки и ${limits.per_ip_per_minute} в минуту с одного адреса. Нужно больше — напишите через <a href="https://xonta.ru">xonta.ru</a>.</p>
