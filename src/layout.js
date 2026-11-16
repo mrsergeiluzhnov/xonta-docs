@@ -47,6 +47,7 @@ export function headTags({ title, description, url, publicUrl, ld = [] }) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
+${url === `${publicUrl}/` ? `<link rel="alternate" hreflang="ru" href="${esc(url)}">\n<link rel="alternate" hreflang="en" href="https://xonta.dev/mcp/">\n<link rel="alternate" hreflang="x-default" href="https://xonta.dev/mcp/">` : ""}
 <meta name="robots" content="index,follow,max-image-preview:large">
 <link rel="canonical" href="${esc(url)}">
 ${iconTags()}
@@ -65,7 +66,7 @@ ${jsonLd}`;
 }
 
 export const topNav = () =>
-  `<nav class="top"><b><a href="/">Xonta Документы</a></b><a href="/#tools">Инструменты</a><a href="/api">API</a><a href="https://xonta.ru">Маркетплейс ИИ-агентов Xonta</a></nav>`;
+  `<nav class="top"><b><a href="/">Xonta Документы</a></b><a href="/#tools">Инструменты</a><a href="/api">API</a><a href="https://xonta.ru">Маркетплейс ИИ-агентов Xonta</a><a href="https://xonta.dev/mcp/" hreflang="en" lang="en">English</a></nav>`;
 
 export const footer = () =>
   `<footer>Сделано командой <a href="https://xonta.ru">Xonta</a> — маркетплейса ИИ-агентов для бизнеса. Новости: <a href="https://t.me/xonta_live">Xonta Live</a>.<br>Для программ и ИИ-агентов: <a href="/openapi.json">openapi.json</a> · <a href="/llms.txt">llms.txt</a> · <a href="/info.json">info.json</a></footer>`;
